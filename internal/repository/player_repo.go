@@ -22,3 +22,20 @@ func (r *PlayerRepository) CreatePlayer(player *model.Player) error {
 	err := r.db.QueryRow(query, player.Username, player.Email, player.PasswordHash).Scan(&player.ID, &player.CreatedAt)
 	return err
 }
+
+func (r *PlayerRepository) GetPlayerByEmail(email string) (*model.Player, error) {
+	query := `SELECT id, username, email, password_hash, COALESCE(avatar_url, ''),
+	total_matches, wins_count, losses_count, score, created_at FROM players
+	WHERE email = $1`
+
+	var player model.Player
+	err := r.db.QueryRow(query, email).Scan(&player.ID, &player.Username, &player.Email, 
+	&player.PasswordHash, &player.AvatarURL, &player.TotalMatches, 
+	&player.WinsCount, &player.LossesCount, &player.Score, &player.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &player, nil
+}

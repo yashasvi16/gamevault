@@ -34,11 +34,16 @@ func main() {
 	}
 	
 	fmt.Println("Database connected succesfully")
-	
+
 	r := chi.NewRouter()
+
 	repo := repository.NewPlayerRepository(db)
 	playerHandler := handler.NewPlayerHandler(repo)
 	r.Post("/players", playerHandler.RegisterPlayer)
+
+	authHandler := handler.NewAuthHandler(repo)
+	r.Post("/login", authHandler.Login)
+	
 	http.ListenAndServe(":8080", r)
 
 }
