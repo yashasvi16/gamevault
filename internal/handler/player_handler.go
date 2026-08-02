@@ -7,12 +7,15 @@ import (
 	"github.com/yashasvi16/gamevault/internal/model"
 	"golang.org/x/crypto/bcrypt"
 	"strconv"
+	"github.com/go-playground/validator/v10"
 )
 
+var validate = validator.New()
+
 type RegisterRequest struct {
-	Username string `json:"username"`
-	Email string `json:"email"`
-	Password string `json:"password"`
+	Username string `json:"username" validate:"required,min=3,max=32"`
+	Email string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
 }
 
 type PlayerHandler struct {
@@ -34,6 +37,15 @@ func (h *PlayerHandler) RegisterPlayer(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Error decoding request body",
+		})
+		return
+	}
+
+	err = validate.Struct(newPlayer)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Validation failed: " + err.Error(),
 		})
 		return
 	}

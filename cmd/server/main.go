@@ -37,7 +37,8 @@ func main() {
 	fmt.Println("Database connected succesfully")
 
 	r := chi.NewRouter()
-
+	r.Use(middleware.LoggerMiddleware)
+	
 	playerRepo := repository.NewPlayerRepository(db)
 	playerHandler := handler.NewPlayerHandler(playerRepo)
 	authHandler := handler.NewAuthHandler(playerRepo)
