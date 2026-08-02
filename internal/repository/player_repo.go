@@ -39,3 +39,32 @@ func (r *PlayerRepository) GetPlayerByEmail(email string) (*model.Player, error)
 
 	return &player, nil
 }
+
+func (r *PlayerRepository) GetLeaderboard(limit int, offset int) ([]model.Player, error) {
+	query := `SELECT id, username, email, password_hash, COALESCE(avatar_url, ''),
+	total_matches, wins_count, losses_count, score, created_at FROM players ORDER BY score DESC LIMIT $1 OFFSET $2`
+
+	rows, err := r.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	
+
+	players := []model.Player{}
+	for rows.Next() {
+		var player model.Player
+		
+		err = rows.Scan(&player.ID, &player.Username, &player.Email, 
+		&player.PasswordHash, &player.AvatarURL, &player.TotalMatches, 
+		&player.WinsCount, &player.LossesCount, &player.Score, &player.CreatedAt)
+		
+		if err != nil {
+			return nil, err
+		}
+
+		players = append(players, player)
+
+	}
+
+	return players, nil
+}

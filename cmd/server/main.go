@@ -40,6 +40,7 @@ func main() {
 	repo := repository.NewPlayerRepository(db)
 	playerHandler := handler.NewPlayerHandler(repo)
 	r.Post("/players", playerHandler.RegisterPlayer)
+	r.Get("/leaderboard", playerHandler.GetLeaderboard)
 
 	authHandler := handler.NewAuthHandler(repo)
 	r.Post("/login", authHandler.Login)

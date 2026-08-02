@@ -6,6 +6,7 @@ import (
 	"github.com/yashasvi16/gamevault/internal/repository"
 	"github.com/yashasvi16/gamevault/internal/model"
 	"golang.org/x/crypto/bcrypt"
+	"strconv"
 )
 
 type RegisterRequest struct {
@@ -65,5 +66,39 @@ func (h *PlayerHandler) RegisterPlayer(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any {
 		"message": "Player registered successfully",
 		"player": registeredPlayer,
+	})
+}
+
+func (h *PlayerHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		limit = 10
+	}
+
+	offset := (page - 1) * limit
+
+	players, err := h.playerRepo.GetLeaderboard(limit, offset)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string {
+			"message": "Error fetching leaderboard",
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK) 
+	json.NewEncoder(w).Encode(map[string]any{
+		"message": "Leaderboard fetched successfully",
+		"data": players,
 	})
 }
