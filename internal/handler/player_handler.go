@@ -102,3 +102,12 @@ func (h *PlayerHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 		"data": players,
 	})
 }
+
+func (h *PlayerHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+	playerID := r.Context().Value("player_id")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{
+		"message": "Welcome to your dashboard",
+		"player_id": playerID,
+	})
+}

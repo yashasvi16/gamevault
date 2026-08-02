@@ -11,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/yashasvi16/gamevault/internal/repository"
 	"github.com/yashasvi16/gamevault/internal/handler"
+	"github.com/yashasvi16/gamevault/internal/middleware"
 )
 
 func main() {
@@ -37,13 +38,24 @@ func main() {
 
 	r := chi.NewRouter()
 
-	repo := repository.NewPlayerRepository(db)
-	playerHandler := handler.NewPlayerHandler(repo)
+	playerRepo := repository.NewPlayerRepository(db)
+	playerHandler := handler.NewPlayerHandler(playerRepo)
+	authHandler := handler.NewAuthHandler(playerRepo)
+
+	matchRepo := repository.NewMatchRepository(db)
+	matchHandler := handler.NewMatchHandler(matchRepo)
+
+	//Public routes
 	r.Post("/players", playerHandler.RegisterPlayer)
 	r.Get("/leaderboard", playerHandler.GetLeaderboard)
-
-	authHandler := handler.NewAuthHandler(repo)
 	r.Post("/login", authHandler.Login)
+
+	//Protected routes
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.AuthMiddleware)
+		r.Get("/profile", playerHandler.GetProfile)
+		r.Post("/match", matchHandler.RecordMatch)
+	})
 	
 	http.ListenAndServe(":8080", r)
 
