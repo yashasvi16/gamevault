@@ -19,10 +19,10 @@ type RegisterRequest struct {
 }
 
 type PlayerHandler struct {
-	playerRepo *repository.PlayerRepository
+	playerRepo repository.PlayerRepo
 }
 
-func NewPlayerHandler(repo *repository.PlayerRepository) *PlayerHandler {
+func NewPlayerHandler(repo repository.PlayerRepo) *PlayerHandler {
 	return &PlayerHandler {
 		playerRepo: repo,
 	}

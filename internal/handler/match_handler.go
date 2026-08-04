@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"github.com/yashasvi16/gamevault/internal/repository"
 	"github.com/yashasvi16/gamevault/internal/model"
+	"github.com/yashasvi16/gamevault/internal/service"
 )
 
 type MatchHandler struct {
@@ -37,12 +38,8 @@ func (h *MatchHandler) RecordMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var winnerID *int
-	if req.MyScore > req.OpponentScore {
-		winnerID = &playerID
-	} else if req.MyScore < req.OpponentScore {
-		winnerID = &req.OpponentID
-	}
+	winnerID := service.DetermineWinner(playerID, 
+	req.OpponentID, req.MyScore, req.OpponentScore)
 
 	var match model.Match
 	match.Player1ID = playerID
