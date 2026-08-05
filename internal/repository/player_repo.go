@@ -68,3 +68,29 @@ func (r *PlayerRepository) GetLeaderboard(limit int, offset int) ([]model.Player
 
 	return players, nil
 }
+
+func (r *PlayerRepository) UpdatePlayerStats(playerID int, won bool) error {
+	query := `UPDATE players 
+	SET total_matches = total_matches + 1,
+		wins_count = CASE 
+			WHEN $2 THEN wins_count + 1 
+			ELSE wins_count
+		END,
+		losses_count = CASE
+			WHEN $2 THEN losses_count
+			ELSE losses_count + 1
+		END,
+		score = CASE
+			WHEN $2 THEN score + 10
+			ELSE score - 5
+		END
+	WHERE id = $1`
+
+	_, err := r.db.Exec(query, playerID, won)
+	
+	if err !=  nil {
+		return err
+	}
+
+	return nil
+}

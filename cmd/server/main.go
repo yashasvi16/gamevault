@@ -12,6 +12,7 @@ import (
 	"github.com/yashasvi16/gamevault/internal/repository"
 	"github.com/yashasvi16/gamevault/internal/handler"
 	"github.com/yashasvi16/gamevault/internal/middleware"
+	"github.com/yashasvi16/gamevault/internal/worker"
 )
 
 func main() {
@@ -40,11 +41,15 @@ func main() {
 	r.Use(middleware.LoggerMiddleware)
 	
 	playerRepo := repository.NewPlayerRepository(db)
+
+	statsJobs := make(chan worker.StatsJob, 10)
+	go worker.StartStatsWorker(statsJobs, playerRepo)
+
 	playerHandler := handler.NewPlayerHandler(playerRepo)
 	authHandler := handler.NewAuthHandler(playerRepo)
 
 	matchRepo := repository.NewMatchRepository(db)
-	matchHandler := handler.NewMatchHandler(matchRepo)
+	matchHandler := handler.NewMatchHandler(matchRepo, statsJobs)
 
 	//Public routes
 	r.Post("/players", playerHandler.RegisterPlayer)
