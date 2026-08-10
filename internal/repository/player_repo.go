@@ -3,7 +3,11 @@ package repository
 import (
 	"database/sql"
 	"github.com/yashasvi16/gamevault/internal/model"
+	"errors"
+	"fmt"
 )
+
+var ErrPlayerNotFound = errors.New("player not found")
 
 type PlayerRepository struct {
 	db *sql.DB
@@ -34,7 +38,11 @@ func (r *PlayerRepository) GetPlayerByEmail(email string) (*model.Player, error)
 	&player.WinsCount, &player.LossesCount, &player.Score, &player.CreatedAt)
 
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrPlayerNotFound
+		}
+
+		return nil, fmt.Errorf("failed to fetch player by email %s: %w", email, err)
 	}
 
 	return &player, nil

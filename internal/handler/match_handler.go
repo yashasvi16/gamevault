@@ -6,12 +6,10 @@ import (
 	"github.com/yashasvi16/gamevault/internal/repository"
 	"github.com/yashasvi16/gamevault/internal/model"
 	"github.com/yashasvi16/gamevault/internal/service"
-	"github.com/yashasvi16/gamevault/internal/worker"
 )
 
 type MatchHandler struct {
 	repo *repository.MatchRepository
-	statsJobs chan worker.StatsJob
 }
 
 type RecordMatchRequest struct {
@@ -20,10 +18,9 @@ type RecordMatchRequest struct {
 	OpponentScore int `json:"opponent_score"`
 }
 
-func NewMatchHandler (repo *repository.MatchRepository, statsJobs chan worker.StatsJob) *MatchHandler {
+func NewMatchHandler (repo *repository.MatchRepository) *MatchHandler {
 	return &MatchHandler{
 		repo: repo,
-		statsJobs: statsJobs,
 	}
 }
 
@@ -51,24 +48,13 @@ func (h *MatchHandler) RecordMatch(w http.ResponseWriter, r *http.Request) {
 	match.Player1Score = req.MyScore
 	match.Player2Score = req.OpponentScore
 
-	err = h.repo.CreateMatch(&match)
+	err = h.repo.RecordMatchWithStats(&match)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Error creating match",
 		})
 		return
-	}
-
-	h.statsJobs <- worker.StatsJob{
-		PlayerID: match.Player1ID,
-		Won: match.WinnerID != nil && 
-			*match.WinnerID == match.Player1ID,
-	}
-	h.statsJobs <- worker.StatsJob{
-		PlayerID: match.Player2ID,
-		Won: match.WinnerID != nil &&
-			*match.WinnerID == match.Player2ID,
 	}
 
 	w.WriteHeader(http.StatusOK)

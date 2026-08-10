@@ -9,10 +9,11 @@ import (
 	"os"
 	"time"
 	"github.com/golang-jwt/jwt/v5"
+	"errors"
 )
 
 type AuthHandler struct {
-	repo *repository.PlayerRepository
+	repo repository.PlayerRepo
 }
 
 type LoginRequest struct {
@@ -20,7 +21,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func NewAuthHandler(repo *repository.PlayerRepository) *AuthHandler {
+func NewAuthHandler(repo repository.PlayerRepo) *AuthHandler {
 	return &AuthHandler{
 		repo: repo,
 	}
@@ -42,9 +43,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var player *model.Player
 	player, err = h.repo.GetPlayerByEmail(req.Email)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
+		if errors.Is(err, repository.ErrPlayerNotFound) {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{
+				"message": "Invalid email or password",
+			})
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Invalid email or password",
+			"message": "Internal server error",
 		})
 		return
 	}

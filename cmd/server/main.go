@@ -12,7 +12,10 @@ import (
 	"github.com/yashasvi16/gamevault/internal/repository"
 	"github.com/yashasvi16/gamevault/internal/handler"
 	"github.com/yashasvi16/gamevault/internal/middleware"
-	"github.com/yashasvi16/gamevault/internal/worker"
+	"context"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -42,14 +45,11 @@ func main() {
 	
 	playerRepo := repository.NewPlayerRepository(db)
 
-	statsJobs := make(chan worker.StatsJob, 10)
-	go worker.StartStatsWorker(statsJobs, playerRepo)
-
 	playerHandler := handler.NewPlayerHandler(playerRepo)
 	authHandler := handler.NewAuthHandler(playerRepo)
 
 	matchRepo := repository.NewMatchRepository(db)
-	matchHandler := handler.NewMatchHandler(matchRepo, statsJobs)
+	matchHandler := handler.NewMatchHandler(matchRepo)
 
 	//Public routes
 	r.Post("/players", playerHandler.RegisterPlayer)
@@ -63,6 +63,35 @@ func main() {
 		r.Post("/match", matchHandler.RecordMatch)
 	})
 	
-	http.ListenAndServe(":8080", r)
+	//http.ListenAndServe(":8080", r)
+
+	srv := &http.Server{
+		Addr: ":8080",
+		Handler: r,
+	}
+
+	go func() {
+		fmt.Println("Server starting on port 8080...")
+		if err := srv.ListenAndServe()
+		err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+	fmt.Println("\nShutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx)
+	err != nil {
+		log.Fatal("Server forced to shutdown: ", err)
+	}
+
+	fmt.Println("Server exited gracefully")
 
 }
