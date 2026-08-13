@@ -16,6 +16,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"log/slog"
 )
 
 func main() {
@@ -38,7 +39,7 @@ func main() {
 		log.Fatal("Error connecting Database: ", err)
 	}
 	
-	fmt.Println("Database connected succesfully")
+	slog.Info("Database connected succesfully")
 
 	r := chi.NewRouter()
 	r.Use(middleware.LoggerMiddleware)
@@ -55,6 +56,7 @@ func main() {
 	r.Post("/players", playerHandler.RegisterPlayer)
 	r.Get("/leaderboard", playerHandler.GetLeaderboard)
 	r.Post("/login", authHandler.Login)
+	r.Get("/health", handler.HealthCheck(db))
 
 	//Protected routes
 	r.Group(func(r chi.Router) {
@@ -71,7 +73,7 @@ func main() {
 	}
 
 	go func() {
-		fmt.Println("Server starting on port 8080...")
+		slog.Info("Server Starting", "port", 8080)
 		if err := srv.ListenAndServe()
 		err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)

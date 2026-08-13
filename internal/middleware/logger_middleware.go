@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 	"time"
-	"log"
+	"log/slog"
 )
 
 type StatusRecorder struct {
@@ -29,6 +29,10 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		log.Printf("%s %s %d %s", r.Method, r.URL.Path, recorder.StatusCode, duration)
+		slog.Info("request completed",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", recorder.StatusCode,
+			"duration_ms", duration.Milliseconds(),)
 	})
 }
