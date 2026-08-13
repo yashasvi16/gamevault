@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # The PostgreSQL Database Service
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: gamevaultpass123
+      POSTGRES_DB: gamevault
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # This automatically runs your schema SQL when the database is created!
+      - ./migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Your Go API Service
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Notice the host is "db" (the name of the service above), not "localhost"
+      - DATABASE_URL=postgres://postgres:gamevaultpass123@db:5432/gamevault?sslmode=disable
+      - JWT_SECRET=X9mK2qLp8RzV4nHd7YcW1fGb5JuNe3TsQa6BxPi0MvLr8EkCnDw2UhZj9AoFyGtS
+    depends_on:
+      - db
+
+# Define the volume to persist database data even if the container restarts
+volumes:
+  postgres_data:
