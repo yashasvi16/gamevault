@@ -12,6 +12,7 @@ import (
 	"github.com/yashasvi16/gamevault/internal/repository"
 	"github.com/yashasvi16/gamevault/internal/handler"
 	"github.com/yashasvi16/gamevault/internal/middleware"
+	"github.com/yashasvi16/gamevault/internal/cache"
 	"context"
 	"os/signal"
 	"syscall"
@@ -38,12 +39,18 @@ func main() {
 	
 	slog.Info("Database connected succesfully")
 
+	redisAddr := os.Getenv("REDIS_URL")
+	redisCache, err := cache.NewRedisCache(redisAddr)
+	if err != nil {
+		slog.Warn("Redis not available, running without cache", "error", err)
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.LoggerMiddleware)
 	
 	playerRepo := repository.NewPlayerRepository(db)
 
-	playerHandler := handler.NewPlayerHandler(playerRepo)
+	playerHandler := handler.NewPlayerHandler(playerRepo, redisCache)
 	authHandler := handler.NewAuthHandler(playerRepo)
 
 	matchRepo := repository.NewMatchRepository(db)

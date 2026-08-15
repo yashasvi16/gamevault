@@ -5,9 +5,13 @@ import (
 	"net/http"
 	"github.com/yashasvi16/gamevault/internal/repository"
 	"github.com/yashasvi16/gamevault/internal/model"
+	"github.com/yashasvi16/gamevault/internal/cache"
 	"golang.org/x/crypto/bcrypt"
 	"strconv"
 	"github.com/go-playground/validator/v10"
+	"time"
+	"log/slog"
+	"fmt"
 )
 
 var validate = validator.New()
@@ -20,11 +24,13 @@ type RegisterRequest struct {
 
 type PlayerHandler struct {
 	playerRepo repository.PlayerRepo
+	cache *cache.RedisCache
 }
 
-func NewPlayerHandler(repo repository.PlayerRepo) *PlayerHandler {
+func NewPlayerHandler(repo repository.PlayerRepo, cache *cache.RedisCache) *PlayerHandler {
 	return &PlayerHandler {
 		playerRepo: repo,
+		cache: cache,
 	}
 }
 
@@ -99,6 +105,22 @@ func (h *PlayerHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 
 	offset := (page - 1) * limit
 
+	cacheKey := fmt.Sprintf("leaderboard:limit:%d:offset:%d", limit, offset)
+
+	if h.cache != nil {
+		cached, err := h.cache.Get(r.Context(), cacheKey)
+		if err != nil {
+			slog.Error("cache get failed", "error", err)
+		} else if cached != "" {
+			slog.Info("cache hit", "key", cacheKey)
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(cached))
+			return
+		}
+	}
+
+	slog.Info("cache miss", "key", cacheKey)
+
 	players, err := h.playerRepo.GetLeaderboard(limit, offset)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -108,11 +130,29 @@ func (h *PlayerHandler) GetLeaderboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK) 
-	json.NewEncoder(w).Encode(map[string]any{
+	response := map[string]any{
 		"message": "Leaderboard fetched successfully",
 		"data": players,
-	})
+	}
+
+	responseJSON, err := json.Marshal(response)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string {
+			"message": "Error marshaling leaderboard",
+		})
+		return
+	}
+
+	if h.cache != nil {
+		err = h.cache.Set(r.Context(), cacheKey, string(responseJSON), 30*time.Second)
+		if err != nil {
+			slog.Error("cache set failed", "error", err)
+		}
+	}
+
+	w.WriteHeader(http.StatusOK) 
+	w.Write(responseJSON)
 }
 
 func (h *PlayerHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
