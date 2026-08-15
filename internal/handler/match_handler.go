@@ -6,10 +6,12 @@ import (
 	"github.com/yashasvi16/gamevault/internal/repository"
 	"github.com/yashasvi16/gamevault/internal/model"
 	"github.com/yashasvi16/gamevault/internal/service"
+	"github.com/yashasvi16/gamevault/internal/ws"
 )
 
 type MatchHandler struct {
 	repo *repository.MatchRepository
+	hub *ws.Hub
 }
 
 type RecordMatchRequest struct {
@@ -18,9 +20,10 @@ type RecordMatchRequest struct {
 	OpponentScore int `json:"opponent_score"`
 }
 
-func NewMatchHandler (repo *repository.MatchRepository) *MatchHandler {
+func NewMatchHandler (repo *repository.MatchRepository, hub *ws.Hub) *MatchHandler {
 	return &MatchHandler{
 		repo: repo,
+		hub: hub,
 	}
 }
 
@@ -56,6 +59,19 @@ func (h *MatchHandler) RecordMatch(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	// Broadcast to all WebSocket clients that the leaderboard has changed
+	if h.hub != nil {
+		notification := map[string]any{
+			"type": "leaderboard_update",
+			"message": "A match was just recorded",
+		}
+		notifJSON, err := json.Marshal(notification)
+		if err == nil {
+			h.hub.Broadcast(notifJSON)
+		}
+	}
+
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{

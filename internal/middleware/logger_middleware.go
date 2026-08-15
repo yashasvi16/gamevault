@@ -1,9 +1,12 @@
 package middleware
 
 import (
-	"net/http"
-	"time"
-	"log/slog"
+	"bufio"
+    "fmt"
+    "net"
+    "net/http"
+    "time"
+    "log/slog"
 )
 
 type StatusRecorder struct {
@@ -35,4 +38,12 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 			"status", recorder.StatusCode,
 			"duration_ms", duration.Milliseconds(),)
 	})
+}
+
+// http.Hijacker so WebSocket upgrades work through the middleware
+func (rec *StatusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+    if hj, ok := rec.ResponseWriter.(http.Hijacker); ok {
+        return hj.Hijack()
+    }
+    return nil, nil, fmt.Errorf("response writer does not implement http.Hijacker")
 }

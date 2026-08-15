@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>GameVault WebSocket Test</title>
+</head>
+
+<body>
+    <h2>WebSocket Messages:</h2>
+    <div id="messages" style="font-family: monospace; background: #111; color: #0f0; padding: 20px;"></div>
+    <script>
+        const ws = new WebSocket("ws://localhost:8080/ws");
+        const div = document.getElementById("messages");
+
+        ws.onopen = () => {
+            div.innerHTML += "<p>✅ Connected to GameVault WebSocket!</p>";
+        };
+
+        ws.onmessage = (event) => {
+            div.innerHTML += "<p>📩 " + event.data + "</p>";
+        };
+
+        ws.onclose = () => {
+            div.innerHTML += "<p>❌ Disconnected</p>";
+        };
+    </script>
+</body>
+
+</html>

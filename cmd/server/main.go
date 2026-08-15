@@ -13,6 +13,7 @@ import (
 	"github.com/yashasvi16/gamevault/internal/handler"
 	"github.com/yashasvi16/gamevault/internal/middleware"
 	"github.com/yashasvi16/gamevault/internal/cache"
+	"github.com/yashasvi16/gamevault/internal/ws"
 	"context"
 	"os/signal"
 	"syscall"
@@ -48,13 +49,16 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.LoggerMiddleware)
 	
+	hub := ws.NewHub()
+	go hub.Run()
+
 	playerRepo := repository.NewPlayerRepository(db)
 
 	playerHandler := handler.NewPlayerHandler(playerRepo, redisCache)
 	authHandler := handler.NewAuthHandler(playerRepo)
 
 	matchRepo := repository.NewMatchRepository(db)
-	matchHandler := handler.NewMatchHandler(matchRepo)
+	matchHandler := handler.NewMatchHandler(matchRepo, hub)
 
 	//Public routes
 	r.Post("/players", playerHandler.RegisterPlayer)
@@ -67,6 +71,10 @@ func main() {
 		r.Use(middleware.AuthMiddleware)
 		r.Get("/profile", playerHandler.GetProfile)
 		r.Post("/match", matchHandler.RecordMatch)
+	})
+
+	r.Get("/ws", func(w http.ResponseWriter, r *http.Request){
+		ws.ServeWs(hub, w, r)
 	})
 	
 	//http.ListenAndServe(":8080", r)
