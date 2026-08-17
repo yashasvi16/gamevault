@@ -21,6 +21,7 @@ services:
   # Your Go API Service
   api:
     build: .
+    restart: always
     ports:
       - "8080:8080"
     environment:
@@ -28,6 +29,7 @@ services:
       - DATABASE_URL=postgres://postgres:gamevaultpass123@db:5432/gamevault?sslmode=disable
       - JWT_SECRET=X9mK2qLp8RzV4nHd7YcW1fGb5JuNe3TsQa6BxPi0MvLr8EkCnDw2UhZj9AoFyGtS
       - REDIS_URL=redis:6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - db
       - redis

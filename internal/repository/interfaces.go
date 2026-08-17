@@ -7,4 +7,5 @@ type PlayerRepo interface {
     GetPlayerByEmail(email string) (*model.Player, error)
     GetLeaderboard(limit, offset int) ([]model.Player, error)
 	UpdatePlayerStats(playerID int, won bool) error
+	GetPlayerByID(id int) (*model.Player, error)
 }

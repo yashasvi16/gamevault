@@ -69,3 +69,31 @@ func (r *MatchRepository) RecordMatchWithStats(match *model.Match) error {
 
 	return tx.Commit()
 }
+
+func (r *MatchRepository) GetMatchesByPlayerID(playerID int) ([]model.Match, error) {
+	query := `SELECT id, player1_id, player2_id, winner, player1_score,
+	player2_score, created_at
+	FROM matches
+	WHERE player1_id = $1 OR player2_id = $1
+	ORDER BY created_at DESC
+	LIMIT 20`
+
+	rows, err := r.db.Query(query, playerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch matches for player %d: %w", playerID, err)
+	}
+
+	var matches []model.Match
+	for rows.Next() {
+		var m model.Match
+		err := rows.Scan(&m.ID, &m.Player1ID, &m.Player2ID, &m.WinnerID,
+		&m.Player1Score, &m.Player2Score, &m.CreatedAt)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan match row: %w", err)
+		}
+		matches = append(matches, m)
+	}
+
+	return matches, nil
+}

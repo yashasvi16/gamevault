@@ -14,6 +14,7 @@ import (
 	"github.com/yashasvi16/gamevault/internal/middleware"
 	"github.com/yashasvi16/gamevault/internal/cache"
 	"github.com/yashasvi16/gamevault/internal/ws"
+	"github.com/yashasvi16/gamevault/internal/ai"
 	"context"
 	"os/signal"
 	"syscall"
@@ -46,6 +47,17 @@ func main() {
 		slog.Warn("Redis not available, running without cache", "error", err)
 	}
 
+	geminiKey := os.Getenv("GEMINI_API_KEY")
+	var advisor *ai.Advisor
+	if geminiKey != "" {
+		advisor, err = ai.NewAdvisor(geminiKey)
+		if err != nil {
+			slog.Warn("AI advisor not available", "error", err)
+		} else {
+			slog.Info("AI advisor initialized")
+		}
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.LoggerMiddleware)
 	
@@ -71,6 +83,9 @@ func main() {
 		r.Use(middleware.AuthMiddleware)
 		r.Get("/profile", playerHandler.GetProfile)
 		r.Post("/match", matchHandler.RecordMatch)
+
+		aiHandler := handler.NewAIHandler(advisor, playerRepo, matchRepo)
+		r.Get("/ai/advice", aiHandler.GetAdvice)
 	})
 
 	r.Get("/ws", func(w http.ResponseWriter, r *http.Request){

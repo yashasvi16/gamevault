@@ -102,3 +102,20 @@ func (r *PlayerRepository) UpdatePlayerStats(playerID int, won bool) error {
 
 	return nil
 }
+
+func (r *PlayerRepository) GetPlayerByID(id int) (*model.Player, error) {
+	query := `SELECT id, username, email, password_hash, COALESCE(avatar_url, ''),
+			total_matches, wins_count, losses_count, score, created_at FROM players
+			WHERE id = $1`
+	
+	var player model.Player
+	err := r.db.QueryRow(query, id).Scan(&player.ID, &player.Username, 
+	&player.Email, &player.PasswordHash, &player.AvatarURL, &player.TotalMatches,
+	&player.WinsCount, &player.LossesCount, &player.Score, &player.CreatedAt)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch player by ID %d: %w", id, err)
+	}
+
+	return &player, nil
+}
